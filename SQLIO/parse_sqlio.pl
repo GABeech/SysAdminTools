@@ -21,10 +21,10 @@
 
 
 use strict;
-use Getopt:Long;
+use Getopt::Long;
 
 # Default Options
-my $SQLIO-Res = "sqlio-out.txt";
+my $SQLIO_Res = "sqlio-out.txt";
 my $CSV_Out = "SQLIO-Out.csv";
 
 
@@ -50,7 +50,9 @@ ENDHELP
 
 sub process_results()
 {
-	open RES_FILE,$SQLIO-Res or die $!;
+	print "$SQLIO_Res\n";
+	print "$CSV_Out\n";
+	open RES_FILE,$SQLIO_Res or die $!;
 	open OUT_FILE,">" . $CSV_Out or die $!;
 
 	print OUT_FILE "Op Type,threads,Outstanding Reqs,rand/seq,Block Size,IO/sec,MB/sec,Min_lat,Avg_lat,Max_lat,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,0,21,22,23,24+\n";
@@ -106,8 +108,8 @@ sub process_results()
 }
 
 my $option = GetOptions(
-					'infile|i' 		=> 		\$SQLIO-Res,
-					'outfile|o'		=>		\$CSV_Out,
+					'infile|i=s' 		=> 		\$SQLIO_Res,
+					'outfile|o=s'		=>		\$CSV_Out,
 					'help|h'		=>		\&display_help,
 				);
 
