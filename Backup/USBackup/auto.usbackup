@@ -1,0 +1,103 @@
+#!/bin/bash
+
+##############################################################################
+# usbackup.sh
+#
+# by Serge van Ginderachter <serge@vanginderachter.be>
+# http://www.vanginderachter.be http://www.ginsys.be
+#
+# This program extends the functionality of usbackup.sh to be used within autofs
+# Just add an antry in /etc/autofs.master:
+## /srv    /etc/auto.usbackup
+# where /srv is $(dirname $mountpoint)
+# $mountpoint being defined in /etc/usbackup.conf
+# as such only $mountpoint will be handled by autofs beneath $(dirname $mountpoint)
+# no other subdirs can be available at that point
+#
+##############################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+
+##############################################################################
+# internal parameters, don't change
+config="usbackup.conf" # should be in /etc or in current dir
+count=0
+##################################################################
+
+say() {
+        MESSAGE="$1"
+        TIMESTAMP=$(date +"%F %T")
+        if [ "$verbose" != "0" ] ; then echo -e "$TIMESTAMP $MESSAGE_PREFIX $MESSAGE" >&2 ; fi
+        logger -t $log_tag -p $log_facility.info "$MESSAGE"
+        }
+
+error ()  {
+        MESSAGE="$1"
+        TIMESTAMP=$(date +"%F %T")
+        echo -e $TIMESTAMP $MESSAGE >&2
+        logger -t $log_tag -p $log_facility.err "$MESSAGE"
+        }
+
+##################################################################
+# first parameter should be dirname we get from autofs
+key=$1
+##################################################################
+# check for $config in current directory or in /etc/ and source the first one found
+if   [ -f $(dirname $0)/$config ]
+then source $(dirname $0)/$config
+elif [ -f /etc/$config ] 
+then source /etc/$config
+else error "Please create  $(dirname $0)/$config OR /etc/$config"; exit
+fi
+
+# if $verbose is set, also make rsync verbose
+if [ $verbose != "0" ] ; then rsync_verbose="-v" ; fi
+##################################################################
+
+say "started: $*"
+
+# check for uuid's amongst connected disks
+for uuid in $uuids 
+	do
+		if [ -e /dev/disk/by-uuid/$uuid ]
+			then usb=$uuid ; let count=count+1
+		fi
+	done
+
+# we found 0, 1 or more filesystems
+case $count in 
+	0)
+		error "Error: no defined disk available."
+		exit 1
+		;;
+	1)
+		true
+		;;
+	*)
+		#error "Error: more than one disk available."
+		#exit 1
+		error "Warning: more than one disk available. Continuing with the last one enumerated."
+		;;
+esac
+
+# $usb holds the uuid of the (last) disk we want to mount
+# output autofs config format
+#usb             -fstype=auto            :/dev/disk/by-uuid/84ff6790-9b69-4401-9ba2-43d044af1d30
+##
+# keep in mind we only want to automount the directory configured in /etc/usbackup.sh
+# otherwise we just return nothing
+[ "$key" = "$(basename $mountpoint)" ] && echo		-fstype=auto		:/dev/disk/by-uuid/${usb}
+
