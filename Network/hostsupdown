@@ -5,7 +5,8 @@
 # Author: Tom Dignan <tom.dignan@gmail.com>
 #
 # Contributors: 
-#  - Janne Pikkarainen, grep optimization
+# - Janne Pikkarainen, grep optimization
+# - Andy Lee Robinson, awk suggestion
 
 
 ENABLE_IPV6=true
@@ -16,15 +17,15 @@ RESET="\033[0m"
 #ipv4
 cat /etc/hosts | grep -v '^#' | grep -v "^$" | grep -v "::" | tr '\t' ' ' | \
 cut -d ' ' -f1  | xargs -I@ echo ping -W2 -c1 @ '&>/dev/null' '&&' echo -e @ \
-'"\\t\\t"' "\"[${GREEN}OK${RESET}]\"" '||' echo -e @ '"\\t\\t"' "\"[${RED}DOWN${RESET}]\"" | bash
+'"\\t\\t"' "\"[${GREEN}OK${RESET}]\"" '||' echo -e @ '"\\n"' "\"[${RED}DOWN${RESET}]\"" | bash | awk '{ printf "%-20s %s\n", $1, $2 }'
 
 if [ $ENABLE_IPV6 == true ]
 then
     #ipv6 
     cat /etc/hosts | grep -v '^#' | grep -v "^$" | grep "::"| tr '\t' ' ' | \
     cut -d ' ' -f1 | xargs -I@ echo ping6 -W2 -c1 @ '&>/dev/null' '&&' echo -e @ \
-    '"\\t\\t"' "\"[${GREEN}OK${RESET}]\"" '||' echo -e @ '"\\t\\t"' "\"[${RED}DOWN${RESET}]\"" \
-    | bash
+    '"\\t\\t"' "\"[${GREEN}OK${RESET}]\"" '||' echo -e @  "\"[${RED}DOWN${RESET}]\"" \
+    | bash | awk '{ printf "%-20s %s\n", $1, $2 }'
 fi
 
 
