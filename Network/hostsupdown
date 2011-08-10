@@ -1,10 +1,10 @@
-#!/bin/bash 
+#!/bin/bash
 #
 # Checks which hosts in your /etc/hosts file are up or down
 #
 # Author: Tom Dignan <tom.dignan@gmail.com>
 #
-# Contributors: 
+# Contributors:
 # - Janne Pikkarainen, grep optimization
 # - Andy Lee Robinson, awk suggestion
 
@@ -16,16 +16,16 @@ RESET="\033[0m"
 
 #ipv4
 grep -Ev '(^[#$]|::)' /etc/hosts | tr '\t' ' ' | \
-cut -d ' ' -f1  | xargs -I@ echo ping -W2 -c1 @ '&>/dev/null' '&&' echo -e @ \
-"\"[${GREEN}OK${RESET}]\"" '||' echo -e @ "\"[${RED}DOWN${RESET}]\"" | bash | awk '{ printf "%-20s %s\n", $1, $2 }'
+cut -d ' ' -f1 | xargs -I@ echo ping -W2 -c1 @ '&>/dev/null' '&&' echo -e @ \
+"\"[${GREEN}OK${RESET}]\"" '||' echo -e @ "\"[${RED}DOWN${RESET}]\"" | bash | awk '{ printf "%-22s %s\n", $1, $2 }'
 
 if [ $ENABLE_IPV6 == true ]
 then
-    #ipv6 
-    cat /etc/hosts | grep -v '^#' | grep -v "^$" | grep "::"| tr '\t' ' ' | \
+    #ipv6
+    grep "::" /etc/hosts | grep -v "^$" | tr '\t' ' ' | \
     cut -d ' ' -f1 | xargs -I@ echo ping6 -W2 -c1 @ '&>/dev/null' '&&' echo -e @ \
     "\"[${GREEN}OK${RESET}]\"" '||' echo -e @ "\"[${RED}DOWN${RESET}]\"" \
-    | bash | awk '{ printf "%-19s %s\n", $1, $2 }'
+    | bash | awk '{ printf "%-22s %s\n", $1, $2 }'
 fi
 
 
