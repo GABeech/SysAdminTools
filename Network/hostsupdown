@@ -3,7 +3,7 @@
 # Checks which hosts in your /etc/hosts file are up or down
 # Author: Tom Dignan <tom.dignan@gmail.com>
 
-ENABLE_IPV6=false
+ENABLE_IPV6=true
 GREEN="\033[0;32m"
 RED="\033[0;31m"
 RESET="\033[0m"
