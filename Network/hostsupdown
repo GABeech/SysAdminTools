@@ -1,7 +1,12 @@
 #!/bin/bash 
 #
 # Checks which hosts in your /etc/hosts file are up or down
+#
 # Author: Tom Dignan <tom.dignan@gmail.com>
+#
+# Contributors: 
+#  - Janne Pikkarainen, grep optimization
+
 
 ENABLE_IPV6=true
 GREEN="\033[0;32m"
