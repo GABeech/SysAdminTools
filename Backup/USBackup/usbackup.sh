@@ -128,3 +128,7 @@ fi
 say "/sbin/e2fsck -p /dev/disk/by-uuid/$usb"
 /sbin/e2fsck -p /dev/disk/by-uuid/$usb >/dev/null
 
+## spin down disk (need sg3-utils package)
+say "/usr/bin/sg_start --readonly --stop /dev/disk/by-uuid/$usb"
+/usr/bin/sg_start --readonly --stop /dev/disk/by-uuid/$usb
+
