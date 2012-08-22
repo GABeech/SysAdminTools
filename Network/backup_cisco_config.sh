@@ -17,25 +17,14 @@
 #####################################################
 
 # Defaults
-
-# We need a random number to assign to the job id. It ages after 5 mins so 3 digits should be fine
 RANDOM_ID=$(rand -M 999)
-
-# You can hard code these .. if you want ...
 CISCO_DEVICE="1.1.1.1"
 TFTP_SERVER="1.1.1.1"
-
-# This is the path from the _root_ of your tftp server
 BACKUP_PATH="/"
 BACKUP_FILE="backup.cfg"
 SNMP_COMMUNITY="private"
-
-#This is set to the location on disk of your tftp directory
 REAL_TFTP_DIR="/srv/tftp"
 TFTP_USER="nobody"
-
-# Syslog information. Log lever for Success (S_) and fail (F_) as well as the
-# Tag to prefix the log entries with.
 S_LOG_PRI="local3.info"
 F_LOG_PRI="local3.warn"
 LOG_TAG="[CISCO-BACKUP]"
@@ -122,7 +111,7 @@ then
 	# THIS IS A HACK NEEDS TO BE FIXED FOR REALZ YO
 	mkdir -m 777 -p ${REAL_TFTP_DIR%/}${BACKUP_PATH%/}
 	if [ ! -d ${REAL_TFTP_DIR%/}${BACKUP_PATH%/} ]
-	then
+	then	
 		logger -p $F_LOG_PRI -t $LOG_TAG "Could not create needed directory: ${REAL_TFTP_DIR%/}${BACKUP_PATH%/}"
 		echo "Could not create needed directory: ${REAL_TFTP_DIR%/}${BACKUP_PATH%/}"
 		exit 1
@@ -141,7 +130,6 @@ ccCopyFileName.$RANDOM_ID s $BACKUP_PATH/$BACKUP_FILE
 logger -p $S_LOG_PRI -t $LOG_TAG "Command Sent"
 
 logger -p $S_LOG_PRI -t $LOG_TAG "Sending execute/Activation Command"
-
 # Needs to be a second call, to work properly
 snmpset -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE \
 ccCopyEntryRowStatus.$RANDOM_ID i active  
