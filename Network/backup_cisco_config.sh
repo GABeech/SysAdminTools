@@ -6,6 +6,14 @@
 # This script is to backup cisco config files. It uses SNMP methods provided by Cisco 
 # as of IOS 12.0
 #
+# You need to setup SNMP on your switches you can do this with the following 
+# commands: 
+# access-list 10 permit <pulling_server_1>
+# access-list 10 permit <pulling_server_n>
+# access-list 10 remark SMNP ACL
+# snmp-server community <community_string> RW
+# snmp-server tftp-server-list 10
+#
 # Dependancies: 
 # 
 # Net-SNMP Package
