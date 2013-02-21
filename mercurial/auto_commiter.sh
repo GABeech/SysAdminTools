@@ -18,17 +18,25 @@
 ############################################################
 
 REPO_ROOT="/srv/tftp/cisco"
+LOCK_DIR="/tmp/network_backup/"
 
-
-# first lets make sure we are in the REPO Root
-cd $REPO_ROOT
+if [ `ls ${LOCK_DIR}*.lock | wc -l` -ne 0 ]
+then
+	exit
+fi
 
 while getopts "r:" args do
 do
-	case $args in
+	echo "In GetOPS"
+	case "$args" in
 		 d) REPO_ROOT="$OPTARG";;
 	esac
 done
+
+echo $REPO_ROOT
+
+# Make sure we are in the repo
+cd $REPO_ROOT
 
 # Check to see if there are incoming changes that we should pull first
 hg incoming
