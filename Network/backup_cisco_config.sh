@@ -6,14 +6,6 @@
 # This script is to backup cisco config files. It uses SNMP methods provided by Cisco 
 # as of IOS 12.0
 #
-# You need to setup SNMP on your switches you can do this with the following 
-# commands: 
-# access-list 10 permit <pulling_server_1>
-# access-list 10 permit <pulling_server_n>
-# access-list 10 remark SMNP ACL
-# snmp-server community <community_string> RW
-# snmp-server tftp-server-list 10
-#
 # Dependancies: 
 # 
 # Net-SNMP Package
@@ -25,7 +17,7 @@
 #####################################################
 
 # Defaults
-RANDOM_ID=$(rand -M 999)
+RANDOM_ID=`echo $(( RANDOM %= 999))`
 CISCO_DEVICE="1.1.1.1"
 TFTP_SERVER="1.1.1.1"
 BACKUP_PATH="/"
@@ -36,6 +28,8 @@ TFTP_USER="nobody"
 S_LOG_PRI="local3.info"
 F_LOG_PRI="local3.warn"
 LOG_TAG="[CISCO-BACKUP]"
+LOCK_DIR="/tmp/network_backup/"
+LOCK_FILE="${CISCO_DEVICE}.lock"
 
 function print_help
 {
@@ -88,6 +82,15 @@ do
 	esac
 done
 
+
+# Check for a lock file, if it exists exit if not create it
+if [ -e ${LOCK_DIR}${LOCK_FILE} ] 
+then 
+	exit
+else
+	touch ${LOCK_DIR}${LOCK_FILE}
+fi
+
 if [ -n $VERBOSITY ]
 then
 	logger -p $S_LOG_PRI -t $LOG_TAG "Device: $CISCO_DEVICE TFTP SERVER: $TFTP_SERVER Path: $BACKUP_PATH File: $BACKUP_FILE Community: $SNMP_COMMUNITY"
@@ -103,9 +106,9 @@ snmpset -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE \
 ccCopyProtocol.$RANDOM_ID i tftp \
 ccCopySourceFileType.$RANDOM_ID i runningConfig  \
 ccCopyDestFileType.$RANDOM_ID i networkFile  \
-ccCopyServerAddress.$RANDOM_ID a $TFTP_SERVER  \
-ccCopyFileName.$RANDOM_ID s $BACKUP_PATH/$BACKUP_FILE \
-ccCopyEntryRowStatus.$RANDOM_ID i active
+ccCopyServerAddress.$RANDOM_ID a "$TFTP_SERVER"  \
+ccCopyFileName.$RANDOM_ID s "$BACKUP_PATH/$BACKUP_FILE" \
+ccCopyEntryRowStatus.$RANDOM_ID i 4 
 COMMAND
 fi
 if [ -n $VERBOSITY ]
@@ -122,31 +125,54 @@ then
 	then	
 		logger -p $F_LOG_PRI -t $LOG_TAG "Could not create needed directory: ${REAL_TFTP_DIR%/}${BACKUP_PATH%/}"
 		echo "Could not create needed directory: ${REAL_TFTP_DIR%/}${BACKUP_PATH%/}"
+		rm ${LOCK_DIR}${LOCK_FILE}
 		exit 1
 	fi
 	echo ${BACKUP_PATH%/}
 fi
 logger -p $S_LOG_PRI -t $LOG_TAG "Sending backup command to Device: $CISCO_DEVICE"
+if [ -n $VERBOSITY ]
+then 
+	echo "sending first config command"
+fi
 # SNMP Set - tells the copy to start
 snmpset -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE \
 ccCopyProtocol.$RANDOM_ID i tftp \
 ccCopySourceFileType.$RANDOM_ID i runningConfig  \
 ccCopyDestFileType.$RANDOM_ID i networkFile  \
-ccCopyServerAddress.$RANDOM_ID a $TFTP_SERVER  \
-ccCopyFileName.$RANDOM_ID s $BACKUP_PATH/$BACKUP_FILE
-
+ccCopyServerAddress.$RANDOM_ID a "$TFTP_SERVER"  \
+ccCopyFileName.$RANDOM_ID s "$BACKUP_PATH/$BACKUP_FILE" \
+ccCopyEntryRowStatus.$RANDOM_ID i 4
 logger -p $S_LOG_PRI -t $LOG_TAG "Command Sent"
 
 logger -p $S_LOG_PRI -t $LOG_TAG "Sending execute/Activation Command"
+
+#if [ -n $VERBOSITY ]
+#then 
+#	echo "sending second activate command"
+#fi
+
 # Needs to be a second call, to work properly
-snmpset -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE \
-ccCopyEntryRowStatus.$RANDOM_ID i active  
+#snmpset -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE \
+#ccCopyEntryRowStatus.$RANDOM_ID i active  
 
 logger -p $S_LOG_PRI -t $LOG_TAG "Checking Result"
 RESULT=$(snmpwalk -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE ccCopyState.$RANDOM_ID | grep -c "success\|failed")
-while [ $RESULT -ne 1 ]
+ESCAPE=200
+while [[ $RESULT -ne 1  &&  $ESCAPE -ge 0 ]]
 do 
+	if [ -n $VERBOSITY ]
+	then
+		STR_RESULT=$(snmpwalk -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE ccCopyState.$RANDOM_ID)
+	fi
 	RESULT=$(snmpwalk -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE ccCopyState.$RANDOM_ID | grep -c "success\|failed")
+	echo $((ESCAPE--))
+	if [ -n $VERBOSITY ]
+	then
+		echo "ESCAPE IS $ESCAPE"
+		echo $RESULT
+		echo $STR_RESULT
+	fi
 done
 if [ $(snmpwalk -v 2c -c $SNMP_COMMUNITY $CISCO_DEVICE ccCopyState.$RANDOM_ID | grep -c "success") -eq 1 ]
 then
@@ -154,5 +180,7 @@ then
 else
 	logger -p $F_LOG_PRI -t $LOG_TAG "backup Failed"
 fi
+
+rm ${LOCK_DIR}${LOCK_FILE}
 
 echo $RESULT
