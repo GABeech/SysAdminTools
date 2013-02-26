@@ -52,9 +52,20 @@ then
 	fi
 fi
 
-# Check to see if there are any updates that need to be pushed
-if [ $(hg status --rev tip -m -a| wc -l) -ne 0 ]
+# Check to see if there are any new files that need to be added
+if [ $(hg status -u | wc -l) -ne 0 ]
 then
-	hg commit -m "Auto Commit by commit script. Changes Detected" -A
-	hg push
+	hg add
+	# lets do a seperate commit for these, maybe make it a bit easier to find
+	hg commit -m $(hg status -u | tr '\n' ',')
 fi
+
+
+# Check to see if there are any updates that need to be pushed
+if [ $(hg status --rev tip -m | wc -l) -ne 0 ]
+then
+	hg commit -m $(hg status -m | tr '\n' ',')
+fi
+
+# push any and all changes
+hg push
